@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pulse Engine6.0 — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* ========================== BASE ========================== */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:"Poppins",sans-serif;background:#0b0b14;color:#fff;overflow:hidden;}
+:root{
+  --accent-1:#6c3eff;
+  --accent-2:#9e76ff;
+  --glass:rgba(255,255,255,0.05);
+  --border:rgba(255,255,255,0.12);
+  --text-light:#c9c6f8;
+}
+
+/* ========================== LIVE BACKGROUND ========================== */
+body::before{
+  content:"";position:fixed;inset:0;
+  background:linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px),
+             linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px);
+  background-size:80px 80px; z-index:0;
+}
+body::after{
+  content:"";position:fixed;inset:0;
+  background:radial-gradient(circle at 30% 40%,rgba(108,62,255,0.12),transparent 60%),
+             radial-gradient(circle at 70% 70%,rgba(158,118,255,0.08),transparent 60%);
+  filter:blur(100px); animation:ambient 12s ease-in-out infinite alternate; z-index:1;
+}
+@keyframes ambient{
+  0%{transform:scale(1) translate(0,0);}
+  100%{transform:scale(1.05) translate(-3%,2%);}
+}
+
+/* ========================== CONTAINER ========================== */
+.container{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:600px;
+  max-height:80vh;
+  overflow-y:auto;
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--border);
+  padding:32px;
+  border-radius:20px;
+  box-shadow:0 12px 40px rgba(108,62,255,0.25);
+  z-index:5;
+}
+.container::-webkit-scrollbar { width:6px; }
+.container::-webkit-scrollbar-thumb { background:rgba(108,62,255,0.4); border-radius:3px; }
+
+/* ========================== HEADER ========================== */
+.logo{font-weight:800;margin-bottom:16px;font-size:24px;color:var(--accent-1);}
+h1{font-size:20px;margin-bottom:10px;color:var(--text-light);}
+p.lead{font-size:13px;color:rgba(201,198,248,0.8);margin-bottom:18px;}
+
+/* ========================== REQUEST CARD ========================== */
+.card{
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(15px);
+  border:1px solid rgba(108,62,255,0.4);
+  border-radius:15px;
+  padding:16px;
+  margin-bottom:12px;
+  box-shadow:0 0 20px rgba(108,62,255,0.3);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.card div.info{
+  display:flex; flex-direction:column;
+}
+.card div.info span{ font-size:14px; color:var(--text-light); margin-bottom:4px; }
+.card div.buttons{ display:flex; gap:10px; }
+.card button{
+  padding:8px 14px;
+  border:none; border-radius:12px;
+  background:rgba(255,255,255,0.05);
+  color:#fff; cursor:pointer;
+  backdrop-filter:blur(12px);
+  transition:all 0.3s ease;
+  border:1px solid rgba(108,62,255,0.4);
+}
+.card button:hover{
+  background:rgba(108,62,255,0.25);
+  box-shadow:0 4px 20px rgba(108,62,255,0.35);
+  transform:translateY(-1px);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo">The club — Admin Panel</div>
+  <h1>Pending Signup Requests</h1>
+  <p class="lead">Accept or deny user signup requests below.</p>
+  <div id="requests"></div>
+</div>
+
+<script>
+// =================== GET & SAVE DATA ===================
+function getRequests(){try{return JSON.parse(localStorage.getItem('pulseSignupRequests')||'[]');}catch(e){return [];} }
+function saveRequests(req){ localStorage.setItem('pulseSignupRequests', JSON.stringify(req)); }
+function getUsers(){ try{return JSON.parse(localStorage.getItem('pulseUsers')||'{}');}catch(e){return {};} }
+function saveUsers(users){ localStorage.setItem('pulseUsers', JSON.stringify(users)); }
+
+// =================== RENDER REQUESTS ===================
+function renderRequests(){
+  const container = document.getElementById('requests');
+  container.innerHTML='';
+  const requests = getRequests().filter(r=>r.status==='pending');
+  if(requests.length===0){ container.innerHTML='<p>No pending requests.</p>'; return; }
+
+  requests.forEach((r,index)=>{
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML=`
+      <div class="info">
+        <span><strong>Username:</strong> ${r.username}</span>
+        <span><strong>Email:</strong> ${r.email}</span>
+        <span><strong>Requested At:</strong> ${new Date(r.requestedAt).toLocaleString()}</span>
+      </div>
+      <div class="buttons">
+        <button class="accept">Accept</button>
+        <button class="deny">Deny</button>
+      </div>
+    `;
+    // Accept button
+    card.querySelector('.accept').addEventListener('click',()=>{
+      const users = getUsers();
+      users[r.username]={username:r.username,email:r.email,password:r.password,joined:new Date().toISOString()};
+      saveUsers(users);
+      const reqs = getRequests();
+      reqs[index].status='accepted';
+      saveRequests(reqs);
+      renderRequests();
+    });
+    // Deny button
+    card.querySelector('.deny').addEventListener('click',()=>{
+      const reqs = getRequests();
+      reqs[index].status='denied';
+      saveRequests(reqs);
+      renderRequests();
+    });
+
+    container.appendChild(card);
+  });
+}
+
+renderRequests();
+</script>
+</body>
+</html>
